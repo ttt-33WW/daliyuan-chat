@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>达利园大明聊天室 - 在线AI聊天网页</title>
+<!-- SEO：搜索引擎优化标签 -->
+<meta name="description" content="达利园大明聊天室，一个清新简约的在线AI聊天网页，支持关键词自动回复，手机电脑都能用，打开就能聊。">
+<meta name="keywords" content="达利园大明,达利园小明,聊天室,AI聊天,在线聊天,关键词回复">
+<meta name="robots" content="index, follow">
+<!-- 社交分享优化 -->
+<meta property="og:title" content="达利园大明聊天室">
+<meta property="og:description" content="清新简约的在线AI聊天网页，打开就能聊！">
+<meta property="og:type" content="website">
+<style>
+/* ================= 基础与布局 ================= */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(160deg, #dceefb 0%, #f2faf6 100%);
+  color: #333;
+  -webkit-font-smoothing: antialiased;
+}
+.app {
+  max-width: 760px;
+  height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f4faff 0%, #eef7f3 100%);
+  box-shadow: 0 0 40px rgba(120, 170, 210, .18);
+}
+
+/* ================= 顶栏 ================= */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6eef5;
+  flex-shrink: 0;
+}
+.avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a8e0ff, #b8f0d8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 2px 6px rgba(120, 180, 220, .25);
+}
+.header-info { flex: 1; min-width: 0; }
+.header-name { font-size: 16px; font-weight: 600; color: #2c3e50; }
+.header-status { font-size: 12px; color: #8aa5b5; display: flex; align-items: center; gap: 5px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #5ad48a; display: inline-block; }
+/* 站主齿轮按钮：普通访客完全隐藏 */
+.gear-btn {
+  display: none;
+  border: none;
+  background: #eef6fd;
+  color: #4a90c2;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.gear-btn:hover { background: #ddeefb; }
+body.is-owner .gear-btn { display: inline-block; }
+
+/* ================= 站主管理面板（访客不可见） ================= */
+.owner-panel {
+  display: none;
+  background: #fbfdff;
+  border-bottom: 1px solid #e2ecf4;
+  padding: 14px 16px;
+  max-height: 45dvh;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+body.is-owner .owner-panel.open { display: block; }
+.panel-title { font-size: 13px; font-weight: 600; color: #5a7a96; margin-bottom: 10px; }
+.rule-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.rule-idx {
+  font-size: 12px; color: #9ab4c6; width: 20px; text-align: center; flex-shrink: 0;
+}
+.rule-row input {
+  border: 1px solid #d7e5f0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: #333;
+  outline: none;
+  background: #fff;
+}
+.rule-row input:focus { border-color: #7cc0ee; }
+.rule-row .kw { flex: 1 1 140px; min-width: 120px; }
+.rule-row .rp { flex: 2 1 220px; min-width: 160px; }
+.del-btn {
+  border: none;
+  background: #fdeeee;
+  color: #d97070;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.del-btn:hover { background: #f9dcdc; }
+.panel-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.panel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity .2s;
+}
+.panel-btn:hover { opacity: .85; }
+.btn-add { background: #d9f2e5; color: #2e9e6b; }
+.btn-reset { background: #f0f0f0; color: #777; }
+.btn-export { background: #dcecfb; color: #3d84b8; }
+.panel-tip { font-size: 12px; color: #9ab4c6; margin-top: 8px; line-height: 1.6; }
+
+/* ================= 聊天区域 ================= */
+.chat-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.msg { display: flex; animation: fadeIn .3s ease; }
+.msg.ai { justify-content: flex-start; }
+.msg.user { justify-content: flex-end; }
+.bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+/* AI 气泡：浅色白底 + 轻微阴影 */
+.msg.ai .bubble {
+  background: #ffffff;
+  color: #333;
+  border-radius: 4px 16px 16px 16px;
+  box-shadow: 0 2px 10px rgba(100, 140, 170, .12);
+}
+/* 用户气泡：浅蓝色 */
+.msg.user .bubble {
+  background: #cfe8ff;
+  color: #1d4e74;
+  border-radius: 16px 4px 16px 16px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ================= 输入区 ================= */
+.input-bar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border-top: 1px solid #e6eef5;
+  flex-shrink: 0;
+}
+.input-bar input {
+  flex: 1;
+  border: 1px solid #d7e5f0;
+  border-radius: 22px;
+  padding: 11px 18px;
+  font-size: 15px;
+  outline: none;
+  background: #f8fcff;
+  color: #333;
+}
+.input-bar input:focus { border-color: #7cc0ee; background: #fff; }
+.send-btn {
+  border: none;
+  background: linear-gradient(135deg, #6db9ef, #4a9fe0);
+  color: #fff;
+  border-radius: 22px;
+  padding: 0 26px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity .2s;
+  flex-shrink: 0;
+}
+.send-btn:hover { opacity: .88; }
+
+/* ================= 首次访问密码弹窗 ================= */
+.modal-mask {
+  position: fixed; inset: 0;
+  background: rgba(90, 120, 145, .38);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-mask.hide { display: none; }
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 26px 24px;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 12px 40px rgba(60, 100, 140, .25);
+  text-align: center;
+}
+.modal-emoji { font-size: 34px; margin-bottom: 8px; }
+.modal h3 { font-size: 17px; color: #2c3e50; margin-bottom: 6px; }
+.modal p { font-size: 13px; color: #8aa5b5; margin-bottom: 16px; line-height: 1.6; }
+.modal input {
+  width: 100%;
+  border: 1px solid #d7e5f0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 15px;
+  text-align: center;
+  outline: none;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+.modal input:focus { border-color: #7cc0ee; }
+.modal-error { font-size: 12px; color: #e07a7a; height: 16px; margin-bottom: 6px; }
+.modal .confirm-btn {
+  width: 100%;
+  border: none;
+  background: linear-gradient(135deg, #6db9ef, #4a9fe0);
+  color: #fff;
+  border-radius: 10px;
+  padding: 11px 0;
+  font-size: 15px;
+  cursor: pointer;
+}
+.modal .visitor-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #9ab4c6;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ================= 手机适配 ================= */
+@media (max-width: 480px) {
+  .app { box-shadow: none; }
+  .header { padding: 12px 14px; }
+  .header-name { font-size: 15px; }
+  .bubble { max-width: 84%; font-size: 14px; }
+  .rule-row .kw, .rule-row .rp { flex-basis: 100%; }
+  .rule-idx { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 顶栏 -->
+  <header class="header">
+    <div class="avatar">🍞</div>
+    <div class="header-info">
+      <div class="header-name">达利园大明</div>
+      <div class="header-status"><span class="dot"></span><span id="roleText">在线</span></div>
+    </div>
+    <!-- 站主专属：面板开关（普通访客不渲染显示） -->
+    <button class="gear-btn" id="gearBtn">⚙ 管理面板</button>
+  </header>
+
+  <!-- 站主专属：折叠式关键词编辑面板 -->
+  <section class="owner-panel" id="ownerPanel">
+    <div class="panel-title">🛠 关键词回复规则（从上往下匹配，命中即停）</div>
+    <div id="ruleList"></div>
+    <div class="panel-actions">
+      <button class="panel-btn btn-add" id="addRuleBtn">＋ 新增规则</button>
+      <button class="panel-btn btn-reset" id="resetBtn">↺ 恢复默认</button>
+      <button class="panel-btn btn-export" id="exportBtn">⬇ 导出网页</button>
+    </div>
+    <div class="panel-tip">修改自动保存在本浏览器；其他访客看不到修改内容。想让所有人用上新规则，请点「导出网页」生成新文件后发布，导出的文件里已写死当前规则。</div>
+  </section>
+
+  <!-- 聊天消息区 -->
+  <main class="chat-box" id="chatBox"></main>
+
+  <!-- 输入区 -->
+  <footer class="input-bar">
+    <input type="text" id="chatInput" placeholder="输入消息，回车发送…" autocomplete="off" maxlength="200">
+    <button class="send-btn" id="sendBtn">发送</button>
+  </footer>
+</div>
+
+<!-- 首次访问：站主密码验证弹窗 -->
+<div class="modal-mask hide" id="roleMask">
+  <div class="modal">
+    <div class="modal-emoji">🍞</div>
+    <h3>欢迎来到达利园大明聊天室</h3>
+    <p>首次访问需要确认身份<br>站主请输入管理密码</p>
+    <input type="password" id="pwdInput" placeholder="请输入密码" maxlength="30">
+    <div class="modal-error" id="pwdError"></div>
+    <button class="confirm-btn" id="pwdBtn">确 定</button>
+    <span class="visitor-link" id="visitorLink">以普通访客身份进入 →</span>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * 一、关键词回复规则（数组形式，放在 JS 最上方，方便查看修改）
+ *    匹配方式：用户消息「包含」关键词即命中，从上往下判断，命中即停止
+ *    每条规则：keywords = 触发关键词数组（任一包含即命中）；reply = 回复内容
+ * ============================================================ */
+// [RULES_START] 关键词规则开始（站主「导出网页」时，这一段会被最新规则替换）
+const DEFAULT_RULES = [
+  { keywords: ["达利园小明"], reply: "哈哈哈哈，达利园小明的爸爸是达利园老明" },
+  { keywords: ["小明是谁"], reply: "小明是达利园家的小朋友呀" },
+  { keywords: ["你好", "哈喽"], reply: "你好呀！很高兴认识你" },
+  { keywords: ["再见", "拜拜"], reply: "拜拜，下次再来玩！" },
+  { keywords: ["话说"], reply: "话说朱一龙，你为什么要说话说。" }
+];
+// [RULES_END] 关键词规则结束
+
+/* 未命中任何关键词时的统一回复 */
+const DEFAULT_REPLY = "这个问题我还不会回答哦。";
+/* 站主管理密码（首次访问时输入正确即成为站主，清空浏览器缓存会重置身份） */
+const OWNER_PASSWORD = "123456789";
+/* AI 名称 */
+const AI_NAME = "达利园大明";
+/* localStorage 键名 */
+const KEY_ROLE  = "dly_chat_role";   // 身份标记：owner / visitor
+const KEY_RULES = "dly_chat_rules";  // 站主自定义规则（仅保存在站主浏览器）
+
+/* ============================================================
+ * 二、全局状态
+ * ============================================================ */
+let myRole = null;   // 'owner' | 'visitor'
+let rules = [];      // 当前生效的关键词规则
+
+/* 常用元素引用 */
+const chatBox   = document.getElementById("chatBox");
+const chatInput = document.getElementById("chatInput");
+const sendBtn   = document.getElementById("sendBtn");
+const roleMask  = document.getElementById("roleMask");
+const pwdInput  = document.getElementById("pwdInput");
+const pwdError  = document.getElementById("pwdError");
+const gearBtn   = document.getElementById("gearBtn");
+const ownerPanel= document.getElementById("ownerPanel");
+const ruleList  = document.getElementById("ruleList");
+
+/* ============================================================
+ * 三、身份判断逻辑（首次访问弹密码框，localStorage 标记身份）
+ * ============================================================ */
+function initRole() {
+  const saved = localStorage.getItem(KEY_ROLE);
+  if (saved === "owner" || saved === "visitor") {
+    enterRole(saved);            // 老访客：直接按上次身份进入
+  } else {
+    roleMask.classList.remove("hide"); // 新访客：弹出密码验证
+    setTimeout(() => pwdInput.focus(), 100);
+  }
+}
+
+/* 按身份进入网站 */
+function enterRole(role) {
+  myRole = role;
+  localStorage.setItem(KEY_ROLE, role);   // 写入 localStorage，下次免验证
+  roleMask.classList.add("hide");
+  if (role === "owner") {
+    document.body.classList.add("is-owner");              // 显示齿轮按钮与管理面板
+    document.getElementById("roleText").textContent = "在线 · 站主模式";
+    // 站主：优先读取自己浏览器里保存过的自定义规则
+    const savedRules = localStorage.getItem(KEY_RULES);
+    rules = savedRules ? JSON.parse(savedRules) : copyRules(DEFAULT_RULES);
+    renderRulePanel();
+  } else {
+    document.getElementById("roleText").textContent = "在线";
+    // 普通访客：只能使用页面内置的默认规则，无法查看/修改任何规则
+    rules = copyRules(DEFAULT_RULES);
+  }
+  showGreeting();
+}
+
+/* 密码验证 */
+function tryPassword() {
+  const val = pwdInput.value.trim();
+  if (val === OWNER_PASSWORD) {
+    enterRole("owner");          // 密码正确 → 站主
+  } else {
+    pwdError.textContent = "密码错误，请重试";
+    pwdInput.value = "";
+    pwdInput.focus();
+  }
+}
+
+/* ============================================================
+ * 四、聊天逻辑
+ * ============================================================ */
+/* 页面加载完成后，AI 自动发出第一条消息：问用户名字 */
+function showGreeting() {
+  addMessage("你好呀！我是" + AI_NAME + "，你叫什么名字呀？", "ai");
+}
+
+/* 生成 AI 回复：包含匹配，从上往下判断，命中即返回 */
+function getReply(text) {
+  for (const rule of rules) {
+    for (const kw of rule.keywords) {
+      if (text.indexOf(kw) !== -1) return rule.reply;  // 包含关键词即命中
+    }
+  }
+  return DEFAULT_REPLY;  // 没有任何命中 → 统一回复
+}
+
+/* 添加一条聊天气泡：who 为 'ai' 或 'user' */
+function addMessage(text, who) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + who;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;               // textContent 防止 XSS
+  wrap.appendChild(bubble);
+  chatBox.appendChild(wrap);
+  chatBox.scrollTop = chatBox.scrollHeight; // 自动滚动到底部
+}
+
+/* 发送消息 */
+function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  chatInput.value = "";
+  addMessage(text, "user");                 // 先显示用户气泡
+  setTimeout(() => addMessage(getReply(text), "ai"), 450); // 稍作停顿再回复，更自然
+}
+
+/* ============================================================
+ * 五、站主管理面板（普通访客完全看不到）
+ * ============================================================ */
+function copyRules(src) { return JSON.parse(JSON.stringify(src)); }
+
+/* 渲染规则编辑列表 */
+function renderRulePanel() {
+  ruleList.innerHTML = "";
+  rules.forEach((rule, i) => {
+    const row = document.createElement("div");
+    row.className = "rule-row";
+
+    const idx = document.createElement("span");
+    idx.className = "rule-idx";
+    idx.textContent = i + 1;
+
+    const kwInput = document.createElement("input");
+    kwInput.className = "kw";
+    kwInput.value = rule.keywords.join("，");
+    kwInput.placeholder = "关键词（多个用逗号分隔）";
+    kwInput.addEventListener("input", () => {
+      // 把输入按中英文逗号拆成关键词数组
+      rule.keywords = kwInput.value.split(/[,，]/).map(s => s.trim()).filter(s => s !== "");
+      saveRules();
+    });
+
+    const rpInput = document.createElement("input");
+    rpInput.className = "rp";
+    rpInput.value = rule.reply;
+    rpInput.placeholder = "回复内容";
+    rpInput.addEventListener("input", () => {
+      rule.reply = rpInput.value;
+      saveRules();
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "del-btn";
+    delBtn.textContent = "删除";
+    delBtn.addEventListener("click", () => {
+      rules.splice(i, 1);
+      saveRules();
+      renderRulePanel();
+    });
+
+    row.appendChild(idx);
+    row.appendChild(kwInput);
+    row.appendChild(rpInput);
+    row.appendChild(delBtn);
+    ruleList.appendChild(row);
+  });
+}
+
+/* 保存规则到站主浏览器的 localStorage */
+function saveRules() {
+  localStorage.setItem(KEY_RULES, JSON.stringify(rules));
+}
+
+/* 面板开合 */
+gearBtn.addEventListener("click", () => {
+  ownerPanel.classList.toggle("open");
+  gearBtn.textContent = ownerPanel.classList.contains("open") ? "✕ 收起面板" : "⚙ 管理面板";
+});
+
+/* 新增规则 */
+document.getElementById("addRuleBtn").addEventListener("click", () => {
+  rules.push({ keywords: ["新关键词"], reply: "新的回复内容" });
+  saveRules();
+  renderRulePanel();
+  const rows = ruleList.querySelectorAll(".rule-row .kw");
+  if (rows.length) rows[rows.length - 1].focus();
+});
+
+/* 恢复默认规则 */
+document.getElementById("resetBtn").addEventListener("click", () => {
+  rules = copyRules(DEFAULT_RULES);
+  localStorage.removeItem(KEY_RULES);
+  renderRulePanel();
+});
+
+/* 导出网页：把当前规则写死进一份新的 HTML 文件，供发布给所有访客 */
+document.getElementById("exportBtn").addEventListener("click", () => {
+  // 1. 克隆当前页面
+  const clone = document.documentElement.cloneNode(true);
+  // 2. 清空聊天记录（新文件加载时会重新生成欢迎消息）
+  clone.querySelector("#chatBox").innerHTML = "";
+  // 3. 还原面板与身份状态（新文件里由访客各自重新验证身份）
+  clone.querySelector("body").classList.remove("is-owner");
+  clone.querySelector("#ownerPanel").classList.remove("open");
+  clone.querySelector("#gearBtn").textContent = "⚙ 管理面板";
+  clone.querySelector("#roleMask").classList.remove("hide");
+  clone.querySelector("#pwdInput").setAttribute("value", "");
+  clone.querySelector("#pwdError").textContent = "";
+  // 4. 序列化，并把默认规则段替换为站主当前规则
+  let html = "<!DOCTYPE html>\n" + clone.outerHTML;
+  const newSeg = "// [RULES_START] 关键词规则开始（站主「导出网页」时，这一段会被最新规则替换）\n"
+    + "const DEFAULT_RULES = " + JSON.stringify(rules, null, 2) + ";\n"
+    + "// [RULES_END] 关键词规则结束";
+  html = html.replace(/\/\/ \[RULES_START\][\s\S]*?\/\/ \[RULES_END\]/, () => newSeg);
+  // 5. 触发浏览器下载
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "达利园大明聊天室.html";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+});
+
+/* ============================================================
+ * 六、事件绑定与启动
+ * ============================================================ */
+sendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMessage();     // 回车发送
+});
+document.getElementById("pwdBtn").addEventListener("click", tryPassword);
+pwdInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") tryPassword();
+});
+document.getElementById("visitorLink").addEventListener("click", () => enterRole("visitor"));
+
+initRole(); // 启动：先判定身份，再生成欢迎消息
+</script>
+</body>
+</html>
